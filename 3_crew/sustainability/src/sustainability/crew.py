@@ -6,6 +6,9 @@ from typing import List
 import os
 from datetime import datetime
 
+# Add Panel callback imports
+from .callbacks import print_task_output, get_panel_callback_handler
+
 # Pydantic Models for Structured Outputs
 class SustainabilityScenario(BaseModel):
     """A realistic business scenario for sustainability messaging training"""
@@ -102,6 +105,7 @@ class Sustainability():
     def __init__(self) -> None:
         self.user_preferences = self._load_user_preferences()
         self._ensure_output_directory()
+        # Initialize search tool
         self.search_tool = SerperDevTool()
         
     def _load_user_preferences(self):
@@ -157,7 +161,8 @@ class Sustainability():
         return Task(
             config=self.tasks_config['scenario_creation_task'],
             agent=self.scenario_builder(),
-            output_pydantic=SustainabilityScenario
+            output_pydantic=SustainabilityScenario,
+            callback=print_task_output
         )
     
     @task
@@ -165,7 +170,8 @@ class Sustainability():
         return Task(
             config=self.tasks_config['mistake_generation_task'],
             agent=self.mistake_illustrator(),
-            output_pydantic=ProblematicMessageAnalysis
+            output_pydantic=ProblematicMessageAnalysis,
+            callback=print_task_output
         )
     
     @task
@@ -173,7 +179,8 @@ class Sustainability():
         return Task(
             config=self.tasks_config['best_practice_transformation_task'],
             agent=self.best_practice_coach(),
-            output_pydantic=BestPracticeGuidance
+            output_pydantic=BestPracticeGuidance,
+            callback=print_task_output
         )
     
     @task
@@ -182,7 +189,8 @@ class Sustainability():
             config=self.tasks_config['assessment_and_feedback_task'],
             agent=self.assessment_agent(),
             output_pydantic=ComprehensiveTrainingReport,
-            output_file='outputs/sustainability_training_session.json'
+            output_file='outputs/sustainability_training_session.json',
+            callback=print_task_output
         )
     
     @crew
@@ -193,6 +201,6 @@ class Sustainability():
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
+            memory=False,  # Disabled to avoid ChromaDB warnings for MVP
             output_log_file="outputs/training_session.log"
         )
