@@ -16,11 +16,52 @@ class SustainabilityPanelApp:
         
         # Create main components
         self.chat_interface = pn.chat.ChatInterface(
-            callback=self.on_user_message,
-            show_send=True,
-            show_rerun=False,
+            callback=None,  # No user input needed
+            show_send=False,  # Hide send button
+            show_rerun=False,  # Hide rerun button
             height=600,
-            sizing_mode="stretch_width"
+            sizing_mode="stretch_width",
+            visible=False  # Hidden initially
+        )
+        
+        # Welcome content (shown when chat is hidden)
+        self.welcome_content = pn.pane.Markdown("""
+# 🤖 Sustainability Messaging Training
+
+## Welcome to AI-Powered Training
+
+This comprehensive training system will help you:
+
+### 🎯 **What You'll Learn**
+- **Identify greenwashing patterns** in marketing messages
+- **Understand EU Green Claims Directive** requirements
+- **Create compliant sustainability messaging** 
+- **Avoid common regulatory violations**
+- **Implement best practices** for your team
+
+### 🤖 **How It Works**
+1. **AI Scenario Builder** creates realistic business contexts
+2. **Greenwashing Detector** identifies problematic messaging patterns  
+3. **Compliance Coach** provides corrected alternatives
+4. **Assessment Generator** creates personalized training materials
+
+### 📊 **What You'll Get**
+- Realistic business scenario for your industry
+- 4-5 problematic messaging examples with detailed analysis
+- Compliant alternatives with best practice guidance
+- Knowledge assessment questions
+- Personalized feedback for Marketing Directors
+- Downloadable training report
+
+### 🚀 **Ready to Start?**
+Configure your training parameters in the sidebar and click **"Start Training Session"** to begin!
+
+---
+
+*Powered by advanced AI agents with real-time market research and regulatory expertise.*
+        """, 
+        sizing_mode="stretch_both",
+        margin=(20, 20)
         )
         
         # Session management
@@ -94,6 +135,15 @@ class SustainabilityPanelApp:
             visible=False
         )
         self.download_pdf_button.on_click(self.download_pdf_report)
+        
+        # New training button (shown after completion)
+        self.new_session_button = pn.widgets.Button(
+            name="🔄 Start New Training Session",
+            button_type="primary",
+            sizing_mode="stretch_width",
+            visible=False
+        )
+        self.new_session_button.on_click(self.start_new_session)
     
     def setup_layout(self):
         """Setup the main layout"""
@@ -110,63 +160,56 @@ class SustainabilityPanelApp:
             "### 📥 Download Results",
             self.download_md_button,
             self.download_pdf_button,
+            self.new_session_button,
             "---",
-            "### 📋 Instructions",
+            "### 📋 Quick Guide",
             """
-            1. **Configure** your training parameters
-            2. **Click** 'Start Training Session'
-            3. **Watch** AI agents work in real-time
-            4. **Download** results when complete
+            **1. Configure** your parameters above
+            **2. Click** 'Start Training Session'  
+            **3. Watch** AI agents work
+            **4. Download** your report
             """,
             "---",
-            "### 🎯 About This Training",
+            "### 🎯 Training Features",
             """
-            This AI-powered training creates:
-            - Realistic business scenarios
-            - Common greenwashing examples
-            - Compliant message alternatives
-            - Knowledge assessment
+            ✅ **Real-time AI agents**  
+            ✅ **Current regulations**  
+            ✅ **Industry-specific scenarios**  
+            ✅ **Compliance guidance**  
+            ✅ **Downloadable reports**
             """,
             width=350,
             margin=(10, 10)
         )
         
-        # Main content area
-        main_content = pn.Column(
-            "# 🤖 Sustainability Messaging Training",
-            "Watch your AI agents work together to create comprehensive sustainability training content.",
-            self.chat_interface,
+        # Main content area - shows welcome or chat
+        self.main_content = pn.Column(
+            self.welcome_content,  # Initially show welcome
+            self.chat_interface,   # Hidden initially
             sizing_mode="stretch_both"
         )
         
         # Simple Row layout
         self.layout = pn.Row(
             sidebar,
-            main_content,
+            self.main_content,
             sizing_mode="stretch_width",
             height=800
         )
     
-    def on_user_message(self, contents: str, user: str, instance):
-        """Handle user messages in chat"""
-        if not self.session_active:
-            response = "Please start a training session first using the 'Start Training Session' button."
-            self.chat_interface.send(response, user="Assistant", respond=False)
-            return
-        
-        # Handle user input during active session
-        response = f"Received your input: {contents}"
-        self.chat_interface.send(response, user="Assistant", respond=False)
-    
     def start_training_session(self, event):
         """Start a new training session"""
         if self.session_active:
-            self.chat_interface.send("Session already active! Please wait for the current session to complete.", user="System", respond=False)
             return
+        
+        # Hide welcome content and show chat
+        self.welcome_content.visible = False
+        self.chat_interface.visible = True
         
         # Hide download buttons during training
         self.download_md_button.visible = False
         self.download_pdf_button.visible = False
+        self.new_session_button.visible = False
         
         # Generate session ID
         self.current_session_id = f"TRAIN_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -196,6 +239,28 @@ class SustainabilityPanelApp:
             daemon=True
         ).start()
     
+    def start_new_session(self, event):
+        """Start a new training session after completion"""
+        # Clear previous chat
+        self.chat_interface.clear()
+        
+        # Hide chat and show welcome
+        self.chat_interface.visible = False
+        self.welcome_content.visible = True
+        
+        # Hide download/new session buttons
+        self.download_md_button.visible = False
+        self.download_pdf_button.visible = False
+        self.new_session_button.visible = False
+        
+        # Reset button
+        self.start_button.disabled = False
+        self.start_button.name = "🚀 Start Training Session"
+        
+        # Reset session state
+        self.session_active = False
+        self.latest_results = None
+    
     def run_crewai_training(self, session_info: Dict[str, Any]):
         """Run the CrewAI training in background"""
         try:
@@ -223,10 +288,11 @@ class SustainabilityPanelApp:
             self.start_button.disabled = False
             self.start_button.name = "🚀 Start Training Session"
             
-            # Show download buttons if we have results
+            # Show download and new session buttons if we have results
             if self.latest_results:
                 self.download_md_button.visible = True
                 self.download_pdf_button.visible = True
+                self.new_session_button.visible = True
     
     def display_training_results(self, result):
         """Display the comprehensive training results in the chat"""
@@ -235,7 +301,7 @@ class SustainabilityPanelApp:
             if hasattr(result, 'tasks_output') and result.tasks_output:
                 final_task = result.tasks_output[-1]
                 if hasattr(final_task, 'pydantic') and final_task.pydantic:
-                    data = final_task.pydantic.dict()
+                    data = final_task.pydantic.model_dump()
                     markdown_report = self.format_results_as_markdown(data)
                     
                     # Send the formatted report to chat
@@ -511,43 +577,154 @@ This comprehensive training session analyzed sustainability messaging for the **
             if hasattr(self.latest_results, 'tasks_output') and self.latest_results.tasks_output:
                 final_task = self.latest_results.tasks_output[-1]
                 if hasattr(final_task, 'pydantic') and final_task.pydantic:
-                    data = final_task.pydantic.dict()
+                    data = final_task.pydantic.model_dump()
                     markdown_content = self.format_results_as_markdown(data)
                     
                     # Create download
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"sustainability_training_report_{timestamp}.md"
                     
-                    # Create a file download
-                    file_download = pn.pane.HTML(f"""
-                    <a href="data:text/markdown;charset=utf-8,{markdown_content.replace('#', '%23')}" 
-                       download="{filename}" 
-                       style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                       📄 Download {filename}
-                    </a>
-                    """)
+                    # Save file to outputs directory
+                    import os
+                    if not os.path.exists('outputs'):
+                        os.makedirs('outputs')
                     
-                    self.chat_interface.send("📄 Markdown report ready for download!", user="System", respond=False)
+                    file_path = f"outputs/{filename}"
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(markdown_content)
+                    
+                    # Get absolute path for user
+                    abs_path = os.path.abspath(file_path)
+                    
+                    # Method 1: Panel FileDownload widget
+                    try:
+                        download_widget = pn.widgets.FileDownload(
+                            file=file_path,
+                            filename=filename,
+                            button_type="success",
+                            name=f"📄 Download {filename}",
+                            sizing_mode="stretch_width"
+                        )
+                        
+                        self.chat_interface.send("📄 **Report Generated Successfully!**", user="System", respond=False)
+                        self.chat_interface.send(download_widget, user="Download", respond=False)
+                        
+                    except Exception as widget_error:
+                        # Method 2: File saved locally with instructions
+                        self.chat_interface.send(f"""📄 **Report Generated Successfully!**
+
+**File saved to:** `{abs_path}`
+
+**To access your report:**
+1. Open file explorer/finder
+2. Navigate to your project folder 
+3. Go to `outputs/` folder
+4. Find `{filename}`
+
+**Or copy this path and open directly:**
+```
+{abs_path}
+```""", user="System", respond=False)
+                        
+                        # Method 3: JavaScript download as backup
+                        import json
+                        content_json = json.dumps(markdown_content)
+                        
+                        js_download = f"""
+                        <div style="margin: 10px 0;">
+                            <button onclick="downloadMarkdown()" 
+                                    style="background-color: #28a745; color: white; padding: 10px 20px; 
+                                           border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                                📄 Click to Download {filename}
+                            </button>
+                        </div>
+                        <script>
+                        function downloadMarkdown() {{
+                            var content = {content_json};
+                            var element = document.createElement('a');
+                            element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(content));
+                            element.setAttribute('download', '{filename}');
+                            element.style.display = 'none';
+                            document.body.appendChild(element);
+                            element.click();
+                            document.body.removeChild(element);
+                        }}
+                        </script>
+                        """
+                        
+                        backup_download = pn.pane.HTML(js_download, sizing_mode="stretch_width")
+                        self.chat_interface.send(backup_download, user="Backup Download", respond=False)
                     
         except Exception as e:
             self.chat_interface.send(f"Error preparing download: {str(e)}", user="System", respond=False)
     
     def download_pdf_report(self, event):
         """Download the training report as PDF"""
-        # For now, show instructions for PDF conversion
-        self.chat_interface.send(
-            """📑 **PDF Download Instructions:**
+        if not self.latest_results:
+            self.chat_interface.send("No results available for download.", user="System", respond=False)
+            return
             
-1. First download the Markdown report using the button above
-2. Use any of these methods to convert to PDF:
-   - **Online:** Upload the .md file to pandoc.org/try or markdown-pdf.com
-   - **Local:** Install pandoc and run: `pandoc report.md -o report.pdf`
-   - **VS Code:** Install "Markdown PDF" extension and export
+        try:
+            # Get the structured data and create markdown
+            if hasattr(self.latest_results, 'tasks_output') and self.latest_results.tasks_output:
+                final_task = self.latest_results.tasks_output[-1]
+                if hasattr(final_task, 'pydantic') and final_task.pydantic:
+                    data = final_task.pydantic.model_dump()
+                    markdown_content = self.format_results_as_markdown(data)
+                    
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    md_filename = f"sustainability_training_report_{timestamp}.md"
+                    
+                    # Save markdown file first
+                    import os
+                    if not os.path.exists('outputs'):
+                        os.makedirs('outputs')
+                    
+                    md_file_path = f"outputs/{md_filename}"
+                    with open(md_file_path, 'w', encoding='utf-8') as f:
+                        f.write(markdown_content)
+                    
+                    # Create download link for the markdown file
+                    md_download_button = pn.widgets.FileDownload(
+                        file=md_file_path,
+                        filename=md_filename,
+                        button_type="success",
+                        sizing_mode="stretch_width"
+                    )
+                    
+                    self.chat_interface.send(
+                        """📑 **PDF Conversion Options:**
+                        
+**Option 1: Download Markdown first, then convert:**""", 
+                        user="System", 
+                        respond=False
+                    )
+                    
+                    self.chat_interface.send(md_download_button, user="Download MD", respond=False)
+                    
+                    self.chat_interface.send(
+                        """**Option 2: Online Conversion:**
+- Go to **pandoc.org/try** 
+- Upload your .md file
+- Choose PDF output
+- Download result
 
-Full PDF generation will be added in a future update!""", 
-            user="System", 
-            respond=False
-        )
+**Option 3: Local Conversion:**
+```bash
+# Install pandoc first
+brew install pandoc  # Mac
+# or
+sudo apt install pandoc  # Linux
+
+# Convert to PDF
+pandoc your_report.md -o report.pdf
+```""", 
+                        user="PDF Instructions", 
+                        respond=False
+                    )
+                    
+        except Exception as e:
+            self.chat_interface.send(f"Error preparing PDF options: {str(e)}", user="System", respond=False)
         
     def servable(self):
         """Return the servable Panel application"""

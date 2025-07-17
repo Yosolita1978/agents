@@ -176,7 +176,7 @@ def print_task_output(task_output: TaskOutput) -> TaskOutput:
         if hasattr(task_output, 'pydantic') and task_output.pydantic:
             # For structured Pydantic outputs, show a summary
             try:
-                data = task_output.pydantic.dict()
+                data = task_output.pydantic.model_dump()
                 if 'company_name' in data:
                     # Scenario task
                     output_summary = f"Business scenario created for {data.get('company_name', 'company')} in {data.get('industry', 'target industry')}"
