@@ -1,0 +1,70 @@
+scenario_creation_task:
+  description: >
+    Create a realistic business scenario for sustainability messaging training based on the user's
+    profile, industry focus, and regional context. Search for current sustainability trends and 
+    real company examples in {user_industry} to make the scenario authentic and timely. Include: 
+    company background, product/service details, target audience, marketing objectives, and specific 
+    sustainability claims the company wants to communicate. Ensure the scenario is relevant to 
+    {user_industry} and incorporates {regional_regulations} compliance requirements.
+  expected_output: >
+    A detailed business scenario including: company profile, product/service description,
+    target market, marketing goals, preliminary sustainability claims, and regulatory context.
+    Base the scenario on current market trends and real examples found through research.
+  agent: scenario_builder
+
+mistake_generation_task:
+  description: >
+    Based on the scenario provided, search for real examples of problematic sustainability 
+    messages and greenwashing cases in similar industries. Create 4-5 problematic sustainability 
+    messages that contain common greenwashing issues found in current market examples. For each 
+    problematic example, explain specifically WHY it's problematic, what current regulations it 
+    violates, and what greenwashing patterns it demonstrates. Focus on real-world mistakes like 
+    vague claims, unsubstantiated superlatives, misleading scope, and future commitments without 
+    accountability. Use recent case studies and regulatory examples.
+  expected_output: >
+    A list of 4-5 problematic sustainability messages based on real market examples, with detailed 
+    explanations of why each is problematic, specific regulatory violations, and greenwashing 
+    patterns identified. Include references to current EU directives, recent enforcement cases, 
+    and industry guidelines.
+  agent: mistake_illustrator
+  context:
+    - scenario_creation_task
+
+best_practice_transformation_task:
+  description: >
+    Transform each problematic message from the previous task into compliant, effective alternatives 
+    by researching current best practices and successful sustainability communications examples. 
+    Search for companies that have done sustainability messaging well in similar contexts. Provide 
+    specific improvements that address the identified issues while maintaining marketing impact. 
+    Explain the changes made and reference current best practices, recent regulatory updates, and 
+    industry standards that support the revised messaging.
+  expected_output: >
+    For each problematic message, provide: the revised compliant version based on current best 
+    practices, explanation of changes made, current regulatory compliance notes, and references 
+    to successful real-world examples. Include recent case studies of effective sustainability 
+    communications.
+  agent: best_practice_coach
+  context:
+    - scenario_creation_task
+    - mistake_generation_task
+
+assessment_and_feedback_task:
+  description: >
+    Create a comprehensive assessment based on the training content and current sustainability 
+    communication trends. Search for recent regulatory updates and emerging best practices to 
+    ensure the assessment reflects the latest requirements. Design 5-7 practical questions that 
+    test understanding of current sustainability messaging principles, up-to-date regulatory 
+    compliance, and ability to identify greenwashing patterns in today's market. Include 
+    scenario-based questions using real, current examples. Format everything as a complete 
+    training report in markdown.
+  expected_output: >
+    A complete training report in markdown format including: business scenario, problematic 
+    messaging examples with explanations, corrected versions with current best practices, 
+    assessment questions based on latest trends with detailed answer key, and personalized 
+    feedback for Marketing Director role. Include references to recent sustainability reports 
+    and regulatory updates.
+  agent: assessment_agent
+  context:
+    - scenario_creation_task
+    - mistake_generation_task
+    - best_practice_transformation_task
